@@ -1,6 +1,8 @@
 package com.softleader.kuhaitaoSearcher.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -30,6 +32,11 @@ public class HtmlSearcher {
 	private IndexSearcher searcher;
 	private Directory directory;
 	private DirectoryReader reader;
+	
+	HtmlFetcher htmlFetcher;
+	public HtmlSearcher(String url) {
+		htmlFetcher = new HtmlFetcher(url);
+	}
 
 	private void index() throws Exception {
 		IndexWriter writer = null;
@@ -38,9 +45,7 @@ public class HtmlSearcher {
 		IndexWriterConfig iwConfig = new IndexWriterConfig(Version.LUCENE_46,
 				analyzer);
 		writer = new IndexWriter(directory, iwConfig);
-		HtmlFetcher html = new HtmlFetcher(
-				"http://www.kuhaitao.com/Discount?cid=32&p=5");
-		List<Product> products = html.fetch();
+		List<Product> products = htmlFetcher.fetch();
 		for (Product product : products) {
 			Document doc = new Document();
 			doc.add(new TextField("description", product.getDescription(),
@@ -48,10 +53,6 @@ public class HtmlSearcher {
 			doc.add(new StringField("username", product.getUserName(),
 					Store.YES));
 			doc.add(new StringField("url", product.getUrl(), Store.YES));
-			// FieldType fieldType = new FieldType();
-			// fieldType.setIndexed(true);// set 是否索引
-			// fieldType.setStored(true);// set 是否存储
-			// fieldType.setTokenized(false);// set 是否分词*/
 			writer.addDocument(doc);
 		}
 		writer.commit();
@@ -64,22 +65,25 @@ public class HtmlSearcher {
 		searcher = new IndexSearcher(reader);
 	}
 
-	public void search(String field, String content) {
+	public List<String> search(String field, String content) {
 		try {
 			Query query = new TermQuery(new Term(field, content));
 			TopDocs topDocs = searcher.search(query, 10);
 			ScoreDoc[] scores = topDocs.scoreDocs;
-			System.out.println("找到个数：" + scores.length);
+			List<String> contents = new ArrayList<String>(scores.length);
 			for (int i = 0; i < scores.length; i++) {
 				Document doc = searcher.doc(scores[i].doc);
-				System.out.println("description:" + doc.get("description"));
+				String description = doc.get("description");
+				contents.add(description);
 			}
+			return contents;
 		} catch (IOException e) {
 			e.printStackTrace();
+			return Collections.EMPTY_LIST;
 		}
 	}
 
-	private void close() {
+	public void close() {
 		if (directory != null) {
 			try {
 				directory.close();
@@ -98,16 +102,4 @@ public class HtmlSearcher {
 		}
 	}
 
-	public static void main(String[] args) {
-		HtmlSearcher html = new HtmlSearcher();
-		String field = "description";
-		String content = "女士";
-		try {
-			html.indexHtml();
-			html.search(field, content);
-			html.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 }

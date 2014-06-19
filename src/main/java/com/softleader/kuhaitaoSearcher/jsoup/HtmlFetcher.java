@@ -30,19 +30,9 @@ public class HtmlFetcher {
 			Element span = item.select("div.body > span").first();
 			product.setDescription(span.text());
 			product.setUrl(span.select("a").attr("href"));
-			System.out.println(product);
 			products.add(product);
 		}
 		return products;
-	}
-	
-	public static void main(String[] args) {
-		HtmlFetcher html = new HtmlFetcher("http://www.kuhaitao.com/Discount?cid=32&p=5");
-		try {
-			html.fetch();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 
 }
